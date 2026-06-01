@@ -1,0 +1,122 @@
+# PM2.5 and O3 monitor propensity-score balancing scripts
+
+This repository contains R scripts for ZCTA-level propensity-score balancing for PM2.5 and O3 monitor locations.
+
+There are two analysis scripts:
+
+- `R/01_make_ps_balance_pm25.R`: PM2.5 monitor workflow using `MS.INFO.shp`
+- `R/02_make_ps_balance_o3.R`: O3 monitor workflow using `MS.O3.INFO.shp`
+
+The scripts pull ZCTA-level demographic/socioeconomic variables from the Census API, build an adjusted ZCTA shapefile, intersect monitor locations with ZCTAs, fit propensity-score models, create PS groups, and export final CSV/RData files.
+
+## What users need to do
+
+Users only need to edit one file:
+
+```text
+R/00_config.R
+```
+
+Open `R/00_config.R` and replace the placeholder values with the paths on your computer.
+
+```r
+CENSUS_API_KEY <- "PASTE_YOUR_CENSUS_API_KEY_HERE"
+
+ZCTA_RAW_SHP <- "/path/to/cb_2020_us_zcta520_500k.shp"
+BG_SHP <- "/path/to/cb_2023_17_bg_500k.shp"
+UA_BLOCK_CSV <- "/path/to/2020_UA_BLOCK_IL.csv"
+
+PM25_MONITOR_SHP <- "/path/to/MS.INFO.shp"
+O3_MONITOR_SHP <- "/path/to/MS.O3.INFO.shp"
+
+OUT_DIR <- "data/outputs/PSBalancing"
+```
+
+Do not upload your real Census API key to GitHub.
+
+## Required input files
+
+| Config variable | File needed | Notes |
+|---|---|---|
+| `ZCTA_RAW_SHP` | `cb_2020_us_zcta520_500k.shp` | 2020 ZCTA cartographic boundary shapefile. Keep `.shp`, `.shx`, `.dbf`, `.prj` together. |
+| `BG_SHP` | `cb_2023_17_bg_500k.shp` | 2023 Illinois block-group shapefile. Keep `.shp`, `.shx`, `.dbf`, `.prj` together. |
+| `UA_BLOCK_CSV` | `2020_UA_BLOCK_IL.csv` | Illinois urban-area block CSV with at least `STATE`, `COUNTY`, `TRACT`, `BLOCK`. |
+| `PM25_MONITOR_SHP` | `MS.INFO.shp` | PM2.5 monitor point shapefile. Keep `.shp`, `.shx`, `.dbf`, `.prj` together. |
+| `O3_MONITOR_SHP` | `MS.O3.INFO.shp` | O3 monitor point shapefile. Keep `.shp`, `.shx`, `.dbf`, `.prj` together. |
+
+## Install R packages
+
+From the repository root:
+
+```bash
+Rscript R/00_install_packages.R
+```
+
+Required R packages:
+
+- `tidycensus`
+- `dplyr`
+- `sf`
+- `stringr`
+- `mgcv`
+- `data.table`
+
+## Check input files
+
+After editing `R/00_config.R`, run:
+
+```bash
+Rscript R/00_check_inputs.R
+```
+
+This checks that the files listed in `R/00_config.R` exist. For shapefiles, `.shp`, `.shx`, and `.dbf` must be in the same folder. `.prj` is strongly recommended.
+
+## Run everything
+
+Run both PM2.5 and O3 workflows:
+
+```bash
+Rscript R/99_run_all.R
+```
+
+Or run them separately:
+
+```bash
+Rscript R/01_make_ps_balance_pm25.R
+Rscript R/02_make_ps_balance_o3.R
+```
+
+## Final outputs
+
+By default, outputs are written to:
+
+```text
+data/outputs/PSBalancing/
+```
+
+Expected final files:
+
+```text
+PSB_PM25_new.csv
+MS_INFO_PS_PM25_new.RData
+PSB_Ozone_new.csv
+MS_INFO_PS_Ozone_new.RData
+```
+
+The PM2.5 script also creates an adjusted ZCTA shapefile:
+
+```text
+data/outputs/PSBalancing/zcta_adjusted/cb_2020_us_zcta520_500k_Adjusted.shp
+```
+
+The O3 script reuses this adjusted ZCTA file if it exists; otherwise, it rebuilds it from the raw ZCTA/BG/UA paths in `R/00_config.R`.
+
+## Notes for GitHub sharing
+
+Do not commit:
+
+- your real Census API key
+- private monitor shapefiles, unless sharing is allowed
+- generated `.csv`, `.RData`, or shapefile outputs
+
+If monitor shapefiles cannot be shared, include a synthetic example monitor shapefile with the same columns and point geometry.
